@@ -22,7 +22,7 @@ public class BaseTest {
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         
         // 4. Navigate to the Insurance Application URL
-        driver.get("http://your-insurance-app-url.com"); 
+        driver.get("https://qeaskillhub.cognizant.com/LoginPage");
     }
 
     // This runs automatically AFTER every single test case

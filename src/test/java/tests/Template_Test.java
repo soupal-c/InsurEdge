@@ -2,7 +2,6 @@ package tests;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import pages.Template_Page; 
 
 // Always extend BaseTest to handle browser open/close
 public class Template_Test extends BaseTest {
