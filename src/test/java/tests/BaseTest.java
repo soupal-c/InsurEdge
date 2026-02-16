@@ -2,34 +2,31 @@ package tests;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import pages.LoginPage;
 import java.time.Duration;
 
 public class BaseTest {
     protected WebDriver driver;
 
-    // This runs automatically BEFORE every single test case
-    @BeforeMethod
+    @BeforeClass
     public void setup() {
-        // 1. Open Chrome
+        // 1. Open Browser
         driver = new ChromeDriver();
-        
-        // 2. Maximize the window
         driver.manage().window().maximize();
-        
-        // 3. Set a global wait time (10 seconds) for elements to load
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        
-        // 4. Navigate to the Insurance Application URL
+
+        // 2. Login immediately (Common for all tests in this file)
         driver.get("https://qeaskillhub.cognizant.com/LoginPage");
+        LoginPage login = new LoginPage(driver);
+        login.doLogin("admin_user", "testadmin");
     }
 
-    // This runs automatically AFTER every single test case
-    @AfterMethod
+    @AfterClass
     public void tearDown() {
         if (driver != null) {
-            driver.quit(); // Closes the browser window
+            driver.quit(); // Closes the browser after ALL tests are done
         }
     }
 }
