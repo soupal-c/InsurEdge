@@ -10,57 +10,94 @@ public class SubCategoryPage {
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // --- Locators based on your HTML ---
+
+    // LOCATORS
+
+    // Navigation
     private By categoryMenu = By.xpath("//a[contains(@class,'nav-link')]/span[text()='Category']");
     private By subCategoryLink = By.xpath("//a[contains(@href,'AdminCreateSubCategory.aspx')]");
-    // Matches the 'Add Subcategory' button that opens a new tab
+
+    // US2-SC-01 - SubCategory Management UI
+
+    // Task 1 - UI Elements
+
+    // Task 2 - Pagination
+
+
+    // US2-SC-02 - SubCategory Functional Flows
+
+    // Task 1 - Dropdown Sync Elements
     private By btnAddSubCategory = By.linkText("Add Subcategory");
-    // Matches the dropdown in the new tab
     private By ddlMainCategory = By.id("ContentPlaceHolder_Admin_ddlMainCategory");
+
+    // Task 2 - Add SubCategory Elements
+
+    // Task 3 - List Refreshing
+
+
+    // US2-SC-03
+
+
+    // US2-SC-04
+
+
+    // DEFECTS
 
     public SubCategoryPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
     }
 
-    /**
-     * SUITE FIX: Navigates to the page but first NUKES any blocking modals
-     * or backdrops left over from previous tests in the suite.
-     */
+
+    // ACTIONS
+
     public void hardResetAndNavigate() {
         try {
-            // 1. Javascript to physically remove modal elements from the DOM
             ((JavascriptExecutor) driver).executeScript(
                     "var modals = document.querySelectorAll('.modal, .modal-backdrop');" +
                             "modals.forEach(m => m.remove());" +
                             "document.body.classList.remove('modal-open');"
             );
-
-            // 2. Safe Click on Sidebar
             wait.until(ExpectedConditions.elementToBeClickable(categoryMenu)).click();
             wait.until(ExpectedConditions.elementToBeClickable(subCategoryLink)).click();
-
         } catch (Exception e) {
-            System.out.println("Robin Recovery: Retrying navigation...");
-            // Fallback: Refresh and try again
             driver.navigate().refresh();
             wait.until(ExpectedConditions.elementToBeClickable(categoryMenu)).click();
             wait.until(ExpectedConditions.elementToBeClickable(subCategoryLink)).click();
         }
     }
 
+    //US2-SC-01 - Task 1
+
+    //US2-SC-01 - Task 2
+
+
+
+    // US2-SC-02 - Task 1 - Dropdown Sync
     public void clickAddSubCategory() {
         wait.until(ExpectedConditions.elementToBeClickable(btnAddSubCategory)).click();
     }
 
     public List<String> getDropdownOptions() {
-        // ROBIN FIX: Wait for the dropdown to actually populate with data from DB
-        // checks that there is more than 1 option (the default is usually "--Select--")
         wait.until(d -> new Select(d.findElement(ddlMainCategory)).getOptions().size() > 1);
-
         Select select = new Select(driver.findElement(ddlMainCategory));
-        return select.getOptions().stream()
-                .map(opt -> opt.getText().trim())
-                .collect(Collectors.toList());
+        return select.getOptions().stream().map(opt -> opt.getText().trim()).collect(Collectors.toList());
     }
+
+    // US2-SC-02 - Task 2 - Add SubCategory Actions
+
+    // US2-SC-02 - Task 3
+
+
+
+    // US2-SC-03 - Task 1
+
+    // US2-SC-03 - Task 2
+
+
+
+    // US2-SC-04 - Task 1
+
+    // US2-SC-04 - Task 2
+
 }

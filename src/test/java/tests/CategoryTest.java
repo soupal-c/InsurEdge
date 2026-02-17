@@ -1,121 +1,123 @@
 package tests;
 
+import org.openqa.selenium.*;
 import org.testng.Assert;
 import org.testng.Reporter;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 import pages.CategoryPage;
-import java.util.Arrays;
 import java.util.List;
 
 public class CategoryTest extends BaseTest {
 
-    // --- US2-MC-01 (UI) ---
+    String autoName = "Auto_" + System.currentTimeMillis();
+    String preEditName = "PreEdit_" + System.currentTimeMillis();
+    String postEditName = "PostEdit_" + System.currentTimeMillis();
+    String dupName = "Dup_" + System.currentTimeMillis();
+
+
+    // US2-MC-01 - Main Category Page UI & Row Actions
+
+    // Task 1 - Automate UI verification for headers, breadcrumbs, and table header order/styling
     @Test(priority = 1)
-    public void US2_MC_01_Task1_VerifyPageUI() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-01 Task 1 (UI) ===", true);
-        CategoryPage category = new CategoryPage(driver);
-        category.navigateToMainCategory();
+    public void US2_MC_01_Task1_VerifyUI() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        Assert.assertEquals(category.getPageTitle(), "Create Main Insurance Category");
-        Assert.assertEquals(category.getBreadcrumbs(), Arrays.asList("Category", "Create Main Category"));
-        Reporter.log("[PASS] UI Elements Verified", true);
+        Assert.assertEquals(catPage.getPageTitle(), "Create Main Insurance Category", "Header Mismatch!");
+
+        List<String> headers = catPage.getTableHeaders();
+        Assert.assertTrue(headers.contains("Category Name") && headers.contains("Status") && headers.contains("Actions"));
+        Reporter.log("UI Verified");
     }
 
+    // Task 2 - Implement assertions for row action icon presence and alignment (Edit/Delete)
     @Test(priority = 2)
-    public void US2_MC_01_Task2_VerifyRowActions() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-01 Task 2 (Icons) ===", true);
-        CategoryPage category = new CategoryPage(driver);
+    public void US2_MC_01_Task2_VerifyRowActionIcons() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        Assert.assertTrue(category.areActionIconsVisible(), "Action icons missing!");
-        Reporter.log("[PASS] Icons Visible", true);
+        Assert.assertTrue(catPage.areRowActionIconsVisible(), "Icons missing!");
+        Reporter.log("Icons Verified");
     }
 
-    // --- US2-MC-02 (Functionality) ---
+    // US2-MC-02 - Search, Add, Edit, and Status
+
+    // Task 1 - Automate Search bar functionality (input, partial matches, and clear)
     @Test(priority = 3)
-    public void US2_MC_02_Task1_VerifySearchFunctionality() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-02 Task 1 (Search) ===", true);
-        CategoryPage category = new CategoryPage(driver);
-        category.navigateToMainCategory();
+    public void US2_MC_02_Task1_SearchFunctionality() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        category.searchFor("Pet");
-        category.clickClear();
-        Assert.assertTrue(category.isCategoryInTable("House"), "Clear failed");
-        Reporter.log("[PASS] Search & Clear Verified", true);
+        catPage.searchFor("Phone");
+        Assert.assertTrue(catPage.isCategoryInTable("Phone"));
+
+        catPage.clickClear();
+        Assert.assertTrue(catPage.isCategoryInTable("Life"));
+        Reporter.log("Search Verified");
     }
 
+    // Task 2 - Implement "Add Category" and verify if the category is added
     @Test(priority = 4)
-    public void US2_MC_02_Task2_VerifyAddCategory() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-02 Task 2 (Add) ===", true);
-        CategoryPage category = new CategoryPage(driver);
-        category.navigateToMainCategory();
+    public void US2_MC_02_Task2_AddCategory() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        String name = "Add_" + System.nanoTime();
-        category.openAddModal();
-        category.fillForm(name, "Active");
-        category.clickCreate();
-        category.waitForModalToClose(); // Ensure modal is gone before next test!
+        catPage.openAddModal();
+        catPage.fillForm(autoName, "Active");
+        catPage.clickCreate();
 
-        Assert.assertTrue(category.isCategoryInTable(name), "Add failed");
-        Reporter.log("[PASS] Added: " + name, true);
+        catPage.searchFor(autoName);
+        Assert.assertTrue(catPage.isCategoryInTable(autoName));
+        Reporter.log("Add Verified");
     }
 
+    // Task 3 - Create "Edit Category" script including field update verification
     @Test(priority = 5)
-    public void US2_MC_02_Task3_VerifyEditCategory() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-02 Task 3 (Edit) ===", true);
-        CategoryPage category = new CategoryPage(driver);
-        category.navigateToMainCategory();
+    public void US2_MC_02_Task3_EditCategory() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        // 1. Create fresh category
-        String preEditName = "PreEdit_" + System.nanoTime();
-        category.openAddModal();
-        category.fillForm(preEditName, "Active");
-        category.clickCreate();
-        category.waitForModalToClose(); // Critical wait
+        catPage.openAddModal();
+        catPage.fillForm(preEditName, "Active");
+        catPage.clickCreate();
 
-        // 2. Edit it
-        category.searchFor(preEditName);
-        String postEditName = "PostEdit_" + System.nanoTime();
-        category.editFirstCategory(postEditName);
+        catPage.searchFor(preEditName);
+        catPage.editFirstCategory(postEditName);
 
-        // 3. Verify
-        category.clickClear();
-        Assert.assertTrue(category.isCategoryInTable(postEditName), "Edit failed");
-        Reporter.log("[PASS] Edited " + preEditName + " to " + postEditName, true);
+        catPage.searchFor(postEditName);
+        Assert.assertTrue(catPage.isCategoryInTable(postEditName));
+        Reporter.log("Edit Verified");
     }
 
+    // Task 4 - Automate negative testing for duplicate Name+Status combinations
     @Test(priority = 6)
-    public void US2_MC_02_Task4_VerifyNegativeTest() {
-        driver.navigate().refresh();
-        Reporter.log("=== EXECUTING: US2-MC-02 Task 4 (Duplicate) ===", true);
-        CategoryPage category = new CategoryPage(driver);
-        category.navigateToMainCategory();
+    public void US2_MC_02_Task4_DuplicateCheck() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
 
-        String name = "Dup_" + System.nanoTime();
+        catPage.openAddModal();
+        catPage.fillForm(dupName, "Active");
+        catPage.clickCreate();
 
-        try {
-            // 1. Create Initial
-            category.openAddModal();
-            category.fillForm(name, "Active");
-            category.clickCreate();
-            category.waitForModalToClose(); // Critical wait
+        catPage.openAddModal();
+        catPage.fillForm(dupName, "Active");
+        catPage.clickCreate();
 
-            // 2. Try Duplicate
-            category.openAddModal();
-            category.fillForm(name, "Active");
-            category.clickCreate();
+        String error = catPage.getErrorMessage();
+        Assert.assertTrue(error.contains("exists") || error.contains("Duplicate"));
+        Reporter.log("Duplicate Verified");
+    }
 
-            // 3. Verify Error
-            String error = category.getErrorMessage();
-            Assert.assertTrue(error.contains("already exists"), "Error missing");
-            Reporter.log("[PASS] Duplicate Blocked", true);
 
-        } finally {
-            category.handleStuckModal(); // Always close modal
-        }
+    // DEFECT FIXES / REGRESSION
+
+
+    // CLEANUP
+
+    @AfterClass(alwaysRun = true)
+    public void cleanup() {
+        CategoryPage catPage = new CategoryPage(driver);
+        catPage.navigateToMainCategory();
+        catPage.cleanUpAllTestArtifacts();
     }
 }

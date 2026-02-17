@@ -16,41 +16,42 @@ public class SubCategoryTest extends BaseTest {
     public String lastCreatedMainCategory = "AutoSync_" + System.currentTimeMillis();
     private String mainWindow;
 
-    @Test
+    // US2-SC-01 - SubCategory Management UI
+    //--------------------------------------
+
+    // Task 1 - Verify UI Headers and Table
+
+    // Task 2 -
+
+
+    // US2-SC-02 - SubCategory Functional Flows
+    //-----------------------------------------
+
+    // Task 1 - Verify Dropdown Synchronization
+    @Test(priority = 2)
     public void US2_SC_02_Task1_VerifyDropdownSync() {
         SubCategoryPage subPage = new SubCategoryPage(driver);
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
-        // --- STEP 0: CLEAN SLATE ---
+        // Setup: Clean & Create Parent Data
         subPage.hardResetAndNavigate();
-        Reporter.log("Step 0: Navigated to Sub-Category page (Clean Slate).");
 
-        // --- STEP 1: CREATE THE DATA (STALE-PROOFED) ---
-        // Navigate explicitly
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(@class,'nav-link')]/span[text()='Category']"))).click();
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(@href,'AdminCreateMainCategory.aspx')]"))).click();
 
-        // ROBIN FIX: Wait for the 'Add' button to be freshly visible
-        WebElement btnAdd = wait.until(ExpectedConditions.refreshed(
-                ExpectedConditions.elementToBeClickable(By.id("ContentPlaceHolder_Admin_btnAdd"))
-        ));
+        WebElement btnAdd = wait.until(ExpectedConditions.refreshed(ExpectedConditions.elementToBeClickable(By.id("ContentPlaceHolder_Admin_btnAdd"))));
         btnAdd.click();
 
-        // ROBIN FIX: Wait for the text box to be freshly visible before typing
         WebElement txtName = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("ContentPlaceHolder_Admin_txtCategoryName")));
-        txtName.clear(); // Good practice to clear before typing
+        txtName.clear();
         txtName.sendKeys(lastCreatedMainCategory);
-
         new Select(driver.findElement(By.id("ContentPlaceHolder_Admin_ddlStatus"))).selectByVisibleText("Active");
         driver.findElement(By.id("ContentPlaceHolder_Admin_btnCreate")).click();
-        Reporter.log("Step 1: Successfully Created Main Category: " + lastCreatedMainCategory);
+        Reporter.log("Created: " + lastCreatedMainCategory);
 
-        // --- STEP 2: NAVIGATE TO SUB-CATEGORY ---
+        // Action: Check Sync
         subPage.hardResetAndNavigate();
         mainWindow = driver.getWindowHandle();
-        Reporter.log("Step 2: Returned to Sub-Category Management.");
-
-        // --- STEP 3: OPEN POPUP (Handle New Tab) ---
         subPage.clickAddSubCategory();
 
         wait.until(d -> d.getWindowHandles().size() > 1);
@@ -61,37 +62,58 @@ public class SubCategoryTest extends BaseTest {
                 break;
             }
         }
-        Reporter.log("Step 3: Switched focus to 'Add Subcategory' tab.");
 
-        // --- STEP 4: VERIFY SYNC ---
         List<String> options = subPage.getDropdownOptions();
         boolean isFound = options.contains(lastCreatedMainCategory);
 
-        // CRITICAL: Close the tab and return to main window BEFORE assertion
         driver.close();
         driver.switchTo().window(mainWindow);
 
-        Assert.assertTrue(isFound, "FAIL: '" + lastCreatedMainCategory + "' was NOT found in the dropdown!");
-        Reporter.log("SUCCESS: Category Sync Verified.");
+        Assert.assertTrue(isFound, "Sync Failed!");
+        Reporter.log("Sync Verified");
     }
+
+    // Task 2 - Add SubCategory
+    // @Test(priority = 3)
+
+
+    // Task 3 - Edit SubCategory
+    // @Test(priority = 4)
+
+
+
+    // US2-SC-03 -
+    //------------------------------------
+
+    // Task 1 -
+
+    // Task 2 -
+
+
+    // US2-SC-04 -
+    //-----------------------------
+
+    // Task 1 -
+
+    // Task 2 -
+
+
+
+    // DEFECT FIXES
+
+
+    // CLEANUP
 
     @AfterClass(alwaysRun = true)
     public void cleanupEnvironment() {
-        Reporter.log("Robin: Running Cleanup...");
         CategoryPage catPage = new CategoryPage(driver);
-
         try {
             if (driver.getWindowHandles().size() > 1 && !driver.getWindowHandle().equals(mainWindow)) {
                 driver.switchTo().window(mainWindow);
             }
-
             driver.findElement(By.xpath("//a[contains(@class,'nav-link')]/span[text()='Category']")).click();
             driver.findElement(By.xpath("//a[contains(@href,'AdminCreateMainCategory.aspx')]")).click();
-
             catPage.deleteMainCategoryByName(lastCreatedMainCategory);
-            Reporter.log("CLEANUP SUCCESS: Test data deleted.");
-        } catch (Exception e) {
-            Reporter.log("CLEANUP SKIPPED: " + e.getMessage());
-        }
+        } catch (Exception e) { /* Ignore */ }
     }
 }

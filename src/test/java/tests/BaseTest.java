@@ -23,7 +23,6 @@ public class BaseTest {
         login.doLogin("admin_user", "testadmin");
     }
 
-    // THIS IS THE MISSING PIECE
     @AfterMethod
     public void cleanupAfterTest(ITestResult result) {
         if (result.getStatus() == ITestResult.FAILURE) {
