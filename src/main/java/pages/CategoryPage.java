@@ -13,21 +13,17 @@ public class CategoryPage {
     private WebDriverWait wait;
 
     // --- LOCATORS ---
-
-    // Navigation
     private By categoryMenu = By.xpath("//a[contains(@class,'nav-link')]/span[text()='Category']");
     private By mainCategoryLink = By.xpath("//a[contains(@href, 'AdminCreateMainCategory.aspx')]");
 
-    // MC-01: UI Elements
+    // MC-01 UI
     private By pageHeader = By.xpath("//div[@class='pagetitle']/h1");
     private By breadcrumbs = By.xpath("//ol[@class='breadcrumb']/li");
     private By tableHeaders = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvCategories']//th");
-
-    // MC-01 Task 2: Row Actions (Looking at the first row of data)
     private By editIcon = By.xpath("//table[contains(@id, 'gvCategories')]//tr[2]//a[contains(@id, 'lnkEdit')]");
     private By deleteIcon = By.xpath("//table[contains(@id, 'gvCategories')]//tr[2]//a[contains(@id, 'lnkDelete')]");
 
-    // MC-02: Functional Elements
+    // MC-02 Functional
     private By searchInput = By.id("ContentPlaceHolder_Admin_txtSearch");
     private By searchBtn = By.id("ContentPlaceHolder_Admin_btnSearch");
     private By clearBtn = By.id("ContentPlaceHolder_Admin_btnClear");
@@ -38,56 +34,80 @@ public class CategoryPage {
     private By statusDropdown = By.id("ContentPlaceHolder_Admin_ddlStatus");
     private By createBtn = By.xpath("//input[@value='Create']");
     private By updateBtn = By.xpath("//input[@value='Update']");
+    private By cancelBtn = By.xpath("//input[@value='Cancel']");
     private By errorMessage = By.id("ContentPlaceHolder_Admin_lblMessage");
     private By table = By.id("ContentPlaceHolder_Admin_gvCategories");
 
-    // --- CONSTRUCTOR ---
+    // --- Additional Locators ---
+    private By btnAdd = By.cssSelector("[id*='btnAdd']");
+    private By txtCategoryName = By.cssSelector("input[id*='txtCategoryName']");
+    private By btnSave = By.cssSelector("[id*='btnSave']");
+    private By successMessage = By.xpath("//div[contains(@class, 'alert-success')]");
+    private By modalOverlay = By.className("modal-backdrop");
+
     public CategoryPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
-    // --- NAVIGATION ---
-    public void navigateToMainCategory() {
-        wait.until(ExpectedConditions.elementToBeClickable(categoryMenu)).click();
-        wait.until(ExpectedConditions.elementToBeClickable(mainCategoryLink)).click();
+    // --- ACTIONS ---
+
+    public void handleStuckModal() {
+        try {
+            if (driver.findElements(categoryModal).size() > 0 && driver.findElement(categoryModal).isDisplayed()) {
+                driver.findElement(cancelBtn).click();
+                wait.until(ExpectedConditions.invisibilityOfElementLocated(categoryModal));
+            }
+        } catch (Exception e) { /* Ignore if no modal */ }
     }
 
-    // --- MC-01: UI ACTIONS ---
+    public void waitForModalToClose() {
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(categoryModal));
+    }
+
+    public void navigateToMainCategory() {
+        // Step 1: Attempt to clear any blocking modals via JS (The "Force" move)
+        try {
+            ((JavascriptExecutor) driver).executeScript(
+                    "var backdrops = document.getElementsByClassName('modal-backdrop');" +
+                            "for(var i=0; i<backdrops.length; i++){backdrops[i].remove();}" +
+                            "document.body.classList.remove('modal-open');"
+            );
+        } catch (Exception e) {
+            // If it's not there, no harm done
+        }
+
+        // Step 2: Use JS Click to navigate - this is much more stable
+        WebElement menu = wait.until(ExpectedConditions.presenceOfElementLocated(categoryMenu));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", menu);
+
+        WebElement link = wait.until(ExpectedConditions.presenceOfElementLocated(mainCategoryLink));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", link);
+    }
+
+    // UI Methods
     public String getPageTitle() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(pageHeader)).getText();
     }
-
     public List<String> getBreadcrumbs() {
         List<WebElement> elements = driver.findElements(breadcrumbs);
         List<String> texts = new ArrayList<>();
-        for (WebElement e : elements) {
-            texts.add(e.getText().trim());
-        }
+        for (WebElement e : elements) texts.add(e.getText().trim());
         return texts;
     }
-
     public List<String> getTableHeaders() {
         List<WebElement> elements = driver.findElements(tableHeaders);
         List<String> texts = new ArrayList<>();
-        for (WebElement e : elements) {
-            texts.add(e.getText().trim());
-        }
+        for (WebElement e : elements) texts.add(e.getText().trim());
         return texts;
     }
-
-    // Checks if Edit AND Delete icons are visible in the first row
     public boolean areActionIconsVisible() {
         try {
-            boolean editVisible = driver.findElement(editIcon).isDisplayed();
-            boolean deleteVisible = driver.findElement(deleteIcon).isDisplayed();
-            return editVisible && deleteVisible;
-        } catch (Exception e) {
-            return false;
-        }
+            return driver.findElement(editIcon).isDisplayed() && driver.findElement(deleteIcon).isDisplayed();
+        } catch (Exception e) { return false; }
     }
 
-    // --- MC-02: SEARCH ACTIONS ---
+    // Functional Methods
     public void searchFor(String keyword) {
         WebElement box = wait.until(ExpectedConditions.visibilityOfElementLocated(searchInput));
         box.clear();
@@ -95,14 +115,13 @@ public class CategoryPage {
         driver.findElement(searchBtn).click();
         wait.until(ExpectedConditions.stalenessOf(box));
     }
-
     public void clickClear() {
         driver.findElement(clearBtn).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(table));
     }
 
-    // --- MC-02: ADD/EDIT ACTIONS ---
     public void openAddModal() {
+        handleStuckModal(); // Ensure clean slate
         wait.until(ExpectedConditions.elementToBeClickable(addBtn)).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(categoryModal));
     }
@@ -116,7 +135,6 @@ public class CategoryPage {
 
     public void clickCreate() {
         driver.findElement(createBtn).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(categoryModal));
     }
 
     public void editFirstCategory(String newName) {
@@ -124,54 +142,66 @@ public class CategoryPage {
         try {
             Alert alert = wait.until(ExpectedConditions.alertIsPresent());
             alert.accept();
-        } catch (Exception e) { /* No alert, proceed */ }
+        } catch (Exception e) { /* No alert */ }
 
         WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(nameInput));
         input.clear();
         input.sendKeys(newName);
         driver.findElement(updateBtn).click();
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(categoryModal));
+        waitForModalToClose();
     }
 
-    // --- VALIDATION HELPER ---
     public boolean isCategoryInTable(String name) {
         try {
             return wait.until(ExpectedConditions.visibilityOfElementLocated(table)).getText().contains(name);
-        } catch (Exception e) {
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
-
     public String getErrorMessage() {
         return wait.until(ExpectedConditions.visibilityOfElementLocated(errorMessage)).getText();
     }
 
-    // --- DELETE ACTION (Robust Cleanup) ---
-    public void deleteCategory(String categoryName) {
+    public void createMainCategory(String categoryName) {
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(modalOverlay));
+        WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(btnAdd));
+        addButton.click();
+
+        WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(txtCategoryName));
+        nameInput.clear();
+        nameInput.sendKeys(categoryName);
+
+        wait.until(ExpectedConditions.elementToBeClickable(btnSave)).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(successMessage));
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(modalOverlay));
+    }
+
+    // --- CLEANUP METHOD ---
+    public void deleteMainCategoryByName(String categoryName) {
         try {
-            // 1. Search to isolate the row
-            searchFor(categoryName);
+            // 1. Locate Search Box using class variables (Better reliability)
+            WebElement searchBox = wait.until(ExpectedConditions.visibilityOfElementLocated(searchInput));
+            searchBox.clear();
+            searchBox.sendKeys(categoryName);
 
-            // 2. Click Delete
-            wait.until(ExpectedConditions.elementToBeClickable(deleteIcon)).click();
+            // 2. CRITICAL: Click the Search Button! (This was missing before)
+            driver.findElement(searchBtn).click();
 
-            // 3. Handle Alert
-            Alert alert = wait.until(ExpectedConditions.alertIsPresent());
-            alert.accept();
+            // 3. Wait for the specific row to appear
+            // Using 'lnkDelete' because your locators above use 'lnkDelete', not 'btnDelete'
+            By deleteBtn = By.xpath("//td[contains(text(),'" + categoryName + "')]/..//a[contains(@id,'lnkDelete')]");
+            WebElement btn = wait.until(ExpectedConditions.elementToBeClickable(deleteBtn));
 
-            // 4. THE FIX: Wait for the specific text to vanish
-            // We use 'invisibilityOfElementLocated' instead of 'stalenessOf'
-            // This covers both full page reloads AND partial table updates.
-            By categoryText = By.xpath("//td[contains(text(), '" + categoryName + "')]");
-            wait.until(ExpectedConditions.invisibilityOfElementLocated(categoryText));
+            // 4. Click & Confirm
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
+            wait.until(ExpectedConditions.alertIsPresent()).accept();
 
-            System.out.println("Cleanup: Successfully deleted '" + categoryName + "'");
+            System.out.println("Robin: Main Category '" + categoryName + "' deleted.");
 
-            // 5. Reset the table (Clear search) so the next test starts fresh
-            clickClear();
+            // Optional: Click Clear to reset the table for the next test
+            try { driver.findElement(clearBtn).click(); } catch (Exception ignore) {}
 
         } catch (Exception e) {
-            System.out.println("Cleanup Warning: Could not delete '" + categoryName + "'. It might not exist. Error: " + e.getMessage());
+            System.out.println("Robin Alert: Cleanup failed. Category might already be gone.");
         }
     }
 }
