@@ -153,26 +153,43 @@ public class SubCategoryTest extends BaseTest {
         driver.switchTo().window(originalWindow);
     }
 
+    // Task 1: Verify Edit form (Pre-population)
     @Test(priority = 7, dependsOnMethods = "US2_SC_03_Task0_SetupData")
-    public void US2_SC_03_Task1_VerifyEditPrePopulation() {
+    public void US2_SC_03_Task1_VerifyEditVerification() {
         subPage.hardResetAndNavigate();
-        subPage.searchAndLocateSubCategory(targetSubCat);
+
+        // 1. Locate the dynamic data created in Task 0
+        boolean found = subPage.searchAndLocateAcrossPages(targetSubCat);
+        Assert.assertTrue(found, "Data created in Task 0 not found in table!");
+
+        // 2. Click Edit
         subPage.clickEditForSubCategory(targetSubCat);
 
-        String actualValue = subPage.getEditNameFieldValue();
-        Assert.assertEquals(actualValue, targetSubCat, "Pre-population failed!");
-        driver.navigate().refresh();
+        // 3. Assert Pre-population (Task 1 requirement)
+        String actualValue = subPage.getEditNameValue();
+        Assert.assertEquals(actualValue, targetSubCat, "Edit form field did NOT pre-populate correctly!");
+
+        Reporter.log("Task 1: Edit form pre-population verified.");
     }
 
-    @Test(priority = 8, dependsOnMethods = "US2_SC_03_Task1_VerifyEditPrePopulation")
+    // Task 2: Assert Immediate Reflection after Update
+    @Test(priority = 8, dependsOnMethods = "US2_SC_03_Task1_VerifyEditVerification")
     public void US2_SC_03_Task2_VerifyUpdateReflection() {
-        subPage.hardResetAndNavigate();
-        subPage.searchAndLocateSubCategory(targetSubCat);
-        subPage.clickEditForSubCategory(targetSubCat);
+        // 1. Perform the update
+        subPage.updateSubCategoryDetails(updatedSubCat, "Active");
 
-        subPage.performUpdate(updatedSubCat, "Active");
-        boolean isUpdated = isSubcategoryPresentAcrossPages(updatedSubCat);
-        Assert.assertTrue(isUpdated, "Update Reflection Failed!");
+        // 2. Handle Success Alert
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            wait.until(ExpectedConditions.alertIsPresent()).accept();
+        } catch (Exception ignored) {}
+
+        // 3. Task 2 requirement: Assert data reflection WITHOUT page reload
+        // We search for the NEW name immediately
+        boolean isUpdated = subPage.searchAndLocateAcrossPages(updatedSubCat);
+        Assert.assertTrue(isUpdated, "TASK 2 FAILED: Updated name not reflected in table immediately!");
+
+        Reporter.log("Task 2: Immediate data reflection confirmed.");
     }
 
     @AfterClass(alwaysRun = true)
