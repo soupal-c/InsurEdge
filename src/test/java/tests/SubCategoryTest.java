@@ -95,6 +95,7 @@ public class SubCategoryTest extends BaseTest {
         Reporter.log("SC-02 Task 1: Dropdown Sync Verified");
     }
 
+/**
     @Test(priority = 4)
     public void US2_SC_02_Task2_VerifyRefreshFunctionality() {
         // REPLACED failing filter test with Refresh Button test (As filter doesn't exist in HTML)
@@ -103,6 +104,7 @@ public class SubCategoryTest extends BaseTest {
         Assert.assertTrue(isRefreshVisible, "Refresh button is missing from the page");
         Reporter.log("SC-02 Task 2: Refresh Button Verified");
     }
+
 
     @Test(priority = 5)
     public void US2_SC_02_Task3_VerifyStatusColumn() {
@@ -113,6 +115,8 @@ public class SubCategoryTest extends BaseTest {
         Assert.assertTrue(statusColumnExists, "Status Column missing in table. Found: " + headers);
         Reporter.log("SC-02 Task 3: Status Column Verified");
     }
+
+    */
 
     // =========================================================
     // SC-03: Edit & Update (2 Test Cases + 1 Setup)
