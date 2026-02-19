@@ -32,6 +32,12 @@ public class SubCategoryPage {
     private By ddlEditStatus = By.xpath("//select[contains(@id,'ddlStatus')]");
     private By btnUpdate = By.xpath("//a[text()='Update' or contains(@id,'lnkUpdate')]");
 
+    // US2-SC-02 - Task 2 - Add SubCategory Elements
+    private By txtSubCategoryName = By.id("ContentPlaceHolder_Admin_txtSubCategory");
+    private By ddlSubStatus = By.id("ContentPlaceHolder_Admin_ddlStatus");
+    private By btnSave = By.id("ContentPlaceHolder_Admin_btnSaveSubCategory");
+    private By btnCancel = By.id("ContentPlaceHolder_Admin_btnCancel");
+
     public SubCategoryPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
@@ -138,6 +144,7 @@ public class SubCategoryPage {
         return nameInput.getAttribute("value");
     }
 
+
     public void performUpdate(String newName, String status) {
         WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(txtEditName));
         nameInput.clear();
@@ -165,4 +172,15 @@ public class SubCategoryPage {
             return false;
         }
     }
+
+    public void fillAndSaveAddForm(String subName, String parentName, String status) {
+        // Select the parent we just created from the dropdown
+        WebElement ddl = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("ContentPlaceHolder_Admin_ddlMainCategory")));
+        new Select(ddl).selectByVisibleText(parentName);
+
+        driver.findElement(By.id("ContentPlaceHolder_Admin_txtSubCategory")).sendKeys(subName);
+        new Select(driver.findElement(By.id("ContentPlaceHolder_Admin_ddlStatus"))).selectByVisibleText(status);
+        driver.findElement(By.id("ContentPlaceHolder_Admin_btnSaveSubCategory")).click();
+    }
+
 }

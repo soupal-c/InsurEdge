@@ -5,6 +5,11 @@ import org.testng.Assert;
 import org.testng.Reporter;
 import org.testng.annotations.*;
 import pages.CategoryPage;
+import pages.SubCategoryPage;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import java.time.Duration;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
 
 public class CategoryTest extends BaseTest {
 
@@ -150,6 +155,57 @@ public class CategoryTest extends BaseTest {
         catPage.searchFor(cancelName);
         Assert.assertEquals(catPage.getCategoryNameByIndex(1), cancelName, "Category should NOT be deleted after cancel!");
         Reporter.log("Delete Cancel Verified");
+    }
+
+    @Test(priority = 9)
+    public void US2_MC_03_Task2_ValidateDependencyBlocking() {
+        String dynamicParent = "Parent_" + System.currentTimeMillis();
+        String dynamicChild = "Child_" + System.currentTimeMillis();
+
+        // 1. Create the Main Category
+        catPage.navigateToMainCategory();
+        catPage.openAddModal();
+        catPage.fillForm(dynamicParent, "Active");
+        catPage.clickCreate();
+
+        // 2. CREATE THE DEPENDENCY (Link Child to Parent)
+        SubCategoryPage subPage = new SubCategoryPage(driver);
+        subPage.hardResetAndNavigate();
+        String mainWindow = driver.getWindowHandle(); // Save current window
+        subPage.clickAddSubCategory();
+
+        // Switch to the popup window
+        for (String handle : driver.getWindowHandles()) {
+            if (!handle.equals(mainWindow)) {
+                driver.switchTo().window(handle);
+                break;
+            }
+        }
+
+        // Fill the form using the ID from your HTML
+        subPage.fillAndSaveAddForm(dynamicChild, dynamicParent, "Active");
+
+        // Handle the success alert
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        wait.until(ExpectedConditions.alertIsPresent()).accept();
+
+        // Switch back to the main page
+        driver.switchTo().window(mainWindow);
+
+        // 3. Go back to Main Category and try to delete the Parent
+        catPage.navigateToMainCategory();
+        catPage.searchFor(dynamicParent);
+        catPage.deleteCategoryByIndex(1);
+
+        // 4. Verification: The Parent should NOT be deleted
+        catPage.clickClear();
+        catPage.searchFor(dynamicParent);
+        String result = catPage.getCategoryNameByIndex(1);
+
+        Assert.assertEquals(result, dynamicParent,
+                "DEFECT: System allowed deletion of '" + dynamicParent + "' even though it had a subcategory link!");
+
+        Reporter.log("Dynamic Dependency Check Verified");
     }
 
     @AfterClass(alwaysRun = true)
