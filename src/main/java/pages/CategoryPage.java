@@ -17,7 +17,7 @@ public class CategoryPage {
     private By mainCategoryLink = By.xpath("//a[contains(@href, 'AdminCreateMainCategory.aspx')]");
     private By pageHeader = By.xpath("//div[@class='pagetitle']/h1");
     private By tableHeaders = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvCategories']//th");
-
+    private final By importButton = By.id("ContentPlaceHolder_Admin_btnImport");
     // Search & Table
     private By txtSearch = By.id("ContentPlaceHolder_Admin_txtSearch");
     private By btnSearch = By.id("ContentPlaceHolder_Admin_btnSearch");
@@ -80,7 +80,39 @@ public class CategoryPage {
         for (WebElement e : elements) texts.add(e.getText().trim());
         return texts;
     }
+    public WebElement getImportButton() {
+        return wait.until(ExpectedConditions.presenceOfElementLocated(importButton));
+    }
 
+public void clickImport() {
+    WebElement btn = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("ContentPlaceHolder_Admin_btnImport")));
+
+    try {
+        // Try to scroll the element into the center of the view first
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", btn);
+        wait.until(ExpectedConditions.elementToBeClickable(btn)).click();
+    } catch (Exception e) {
+        // If the header still blocks it, use JavaScript to force the click
+        System.out.println("[INFO] Standard click blocked by header. Using JS Click fallback.");
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
+    }
+}
+
+    public boolean isImportResponseVisible() {
+        // Check for any UI change: a modal or a message label
+        By[] responseLocators = {
+                By.id("categoryModal"),
+                By.cssSelector(".modal.show"),
+                By.id("ContentPlaceHolder_Admin_lblMessage")
+        };
+
+        for (By locator : responseLocators) {
+            if (!driver.findElements(locator).isEmpty() && driver.findElement(locator).isDisplayed()) {
+                return true;
+            }
+        }
+        return false;
+    }
     // --- INDEX BASED METHODS (Robust) ---
 
     private WebElement getRowByIndex(int index) {

@@ -207,7 +207,38 @@ public class CategoryTest extends BaseTest {
 
         Reporter.log("Dynamic Dependency Check Verified");
     }
+    @Test(priority = 10)
+    public void US2_MC_04_Task1_verifyImportButtonPresence() {
+        catPage.navigateToMainCategory();
+        WebElement importBtn = catPage.getImportButton();
 
+        boolean isCorrect = importBtn.isDisplayed() && "Import".equalsIgnoreCase(importBtn.getAttribute("value"));
+
+        if (isCorrect) {
+            Reporter.log("PASS: Import button is visible with correct label.");
+        }
+
+        Assert.assertTrue(isCorrect, "Import button is either missing or has the wrong label!");
+    }
+
+    @Test(priority = 11, dependsOnMethods = "US2_MC_04_Task1_verifyImportButtonPresence")
+    public void UC2_MC_04_Task2_verifyImportButtonFunctionality() {
+        // 3. Action
+        catPage.clickImport();
+        Reporter.log("Action: Clicked the Import button.");
+
+        // 4. Functional Assertion
+        boolean hasResponded = catPage.isImportResponseVisible();
+
+        if (hasResponded) {
+            Reporter.log("PASS: Functional response detected (Modal/Message appeared).");
+        }
+        else {
+            Reporter.log("FAIL: No UI response detected after clicking Import.");
+        }
+
+        Assert.assertTrue(hasResponded, "Import button clicked but no Modal or Message appeared.");
+    }
     @AfterClass(alwaysRun = true)
     public void cleanup() {
         catPage.navigateToMainCategory();
