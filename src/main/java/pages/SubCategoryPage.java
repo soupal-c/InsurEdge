@@ -183,4 +183,43 @@ public class SubCategoryPage {
         driver.findElement(By.id("ContentPlaceHolder_Admin_btnSaveSubCategory")).click();
     }
 
+    public boolean searchAndLocateAcrossPages(String subName) {
+        while (true) {
+            List<WebElement> elements = driver.findElements(By.xpath("//span[normalize-space()='" + subName + "']"));
+            if (!elements.isEmpty()) return true;
+
+            // Logic: Find the cell with the current page (span) and click the next link (a)
+            String nextLinkXpath = "//table[contains(@id,'gvSubCategories')]//tr[last()]//td[span]/following-sibling::td[1]/a";
+            List<WebElement> nextPager = driver.findElements(By.xpath(nextLinkXpath));
+
+            if (!nextPager.isEmpty()) {
+                nextPager.get(0).click();
+                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            } else {
+                return false;
+            }
+        }
+    }
+
+
+
+    public String getEditNameValue() {
+        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[contains(@id,'txtSubCategory')]")));
+        return input.getAttribute("value");
+    }
+
+    public void updateSubCategoryDetails(String newName, String status) {
+        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[contains(@id,'txtSubCategory')]")));
+        input.clear();
+        input.sendKeys(newName);
+        new Select(driver.findElement(By.xpath("//select[contains(@id,'ddlStatus')]"))).selectByVisibleText(status);
+        driver.findElement(By.xpath("//a[contains(@id,'lnkUpdate')]")).click();
+    }
+
+
+
+
+
+
 }
+
