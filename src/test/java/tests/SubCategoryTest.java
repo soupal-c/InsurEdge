@@ -192,6 +192,7 @@ public class SubCategoryTest extends BaseTest {
         Reporter.log("Task 2: Immediate data reflection confirmed.");
     }
 
+
     @AfterClass(alwaysRun = true)
     public void cleanupEnvironment() {
         try { catPage.cleanUpAllTestArtifacts(); } catch (Exception ignored) {}
