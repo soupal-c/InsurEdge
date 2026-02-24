@@ -27,9 +27,7 @@ public class BaseTest {
     public void cleanupAfterTest(ITestResult result) {
         if (result.getStatus() == ITestResult.FAILURE) {
             System.out.println("Robin: Hard reset for: " + result.getName());
-            // Instead of just refreshing, let's force go back to the starting URL
-            // to break any stuck JS loops or modals
-            driver.get("https://qeaskillhub.cognizant.com/AdminDashboard"); // Or your main admin page
+            driver.get("https://qeaskillhub.cognizant.com/AdminDashboard");
         }
     }
 
@@ -38,5 +36,11 @@ public class BaseTest {
         if (driver != null) {
             driver.quit();
         }
+    }
+
+    public String nameGenerator(String prefix) {
+        String timeStr = String.valueOf(System.currentTimeMillis());
+        // Appends the 5-digit slice to whatever prefix you pass in
+        return prefix + timeStr.substring(timeStr.length() - 5);
     }
 }

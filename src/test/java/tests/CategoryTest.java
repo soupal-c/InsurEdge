@@ -9,17 +9,17 @@ import pages.SubCategoryPage;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
 
 public class CategoryTest extends BaseTest {
 
     CategoryPage catPage;
 
-    String autoName = "Auto_" + System.currentTimeMillis();
-    String preEditName = "PreEdit_" + System.currentTimeMillis();
-    String postEditName = "PostEdit_" + System.currentTimeMillis();
-    String dupName = "Dup_" + System.currentTimeMillis();
-    String deleteName = "Delete_" + System.currentTimeMillis();
+    // Beautifully clean initializations using your new method
+    String autoName = nameGenerator("Auto_");
+    String preEditName = nameGenerator("PreEdit_");
+    String postEditName = nameGenerator("PostEdit_");
+    String dupName = nameGenerator("Dup_");
+    String deleteName = nameGenerator("Delete_");
 
     @BeforeClass
     public void setupPage() {
@@ -31,14 +31,12 @@ public class CategoryTest extends BaseTest {
         catPage.navigateToMainCategory();
     }
 
-    // 1. UI Verification
     @Test(priority = 1)
     public void US2_MC_01_Task1_VerifyUI() {
         Assert.assertEquals(catPage.getPageTitle(), "Create Main Insurance Category");
         Reporter.log("UI Verified");
     }
 
-    // 2. Row Icons
     @Test(priority = 2)
     public void US2_MC_01_Task2_VerifyRowActionIcons() {
         if (catPage.getCategoryNameByIndex(1) == null) {
@@ -50,7 +48,6 @@ public class CategoryTest extends BaseTest {
         Reporter.log("Icons Verified");
     }
 
-    // 3. Search
     @Test(priority = 3)
     public void US2_MC_02_Task1_SearchFunctionality() {
         String existingName = catPage.getCategoryNameByIndex(1);
@@ -67,7 +64,6 @@ public class CategoryTest extends BaseTest {
         Reporter.log("Search Verified");
     }
 
-    // 4. Add Category
     @Test(priority = 4)
     public void US2_MC_02_Task2_AddCategory() {
         catPage.openAddModal();
@@ -79,7 +75,6 @@ public class CategoryTest extends BaseTest {
         Reporter.log("Add Verified");
     }
 
-    // 5. Edit Category
     @Test(priority = 5)
     public void US2_MC_02_Task3_EditCategory() {
         catPage.openAddModal();
@@ -95,7 +90,6 @@ public class CategoryTest extends BaseTest {
         Reporter.log("Edit Verified");
     }
 
-    // 6. Duplicate Check (Robust)
     @Test(priority = 6)
     public void US2_MC_02_Task4_DuplicateCheck() {
         try {
@@ -106,19 +100,16 @@ public class CategoryTest extends BaseTest {
             catPage.openAddModal();
             catPage.fillForm(dupName, "Active");
 
-            // Expect failure (modal stays open)
             catPage.clickCreateFailureExpected();
 
             String error = catPage.getErrorMessage();
             Assert.assertTrue(error.contains("exists") || error.contains("Duplicate"));
             Reporter.log("Duplicate Verified");
         } finally {
-            // ALWAYS refresh to close the stuck modal, so the next test can run
             driver.navigate().refresh();
         }
     }
 
-    // 7. Verify Delete (Happy Path)
     @Test(priority = 7)
     public void US2_MC_03_Task1_VerifyDelete() {
         catPage.openAddModal();
@@ -136,21 +127,17 @@ public class CategoryTest extends BaseTest {
         Reporter.log("Delete Logic Verified");
     }
 
-    // 8. Verify Delete Cancellation (New Test Case)
     @Test(priority = 8)
     public void US2_MC_03_Task2_DeleteCancellation() {
-        // Create a category to try and delete
-        String cancelName = "Cancel_" + System.currentTimeMillis();
+        String cancelName = nameGenerator("Cancel_");
         catPage.openAddModal();
         catPage.fillForm(cancelName, "Active");
         catPage.clickCreate();
 
         catPage.searchFor(cancelName);
 
-        // Try to delete but click "Cancel" on alert
         catPage.deleteCategoryByIndexAndCancel(1);
 
-        // Verify it still exists
         catPage.clickClear();
         catPage.searchFor(cancelName);
         Assert.assertEquals(catPage.getCategoryNameByIndex(1), cancelName, "Category should NOT be deleted after cancel!");
@@ -159,22 +146,19 @@ public class CategoryTest extends BaseTest {
 
     @Test(priority = 9)
     public void US2_MC_03_Task2_ValidateDependencyBlocking() {
-        String dynamicParent = "Parent_" + System.currentTimeMillis();
-        String dynamicChild = "Child_" + System.currentTimeMillis();
+        String dynamicParent = nameGenerator("Parent_");
+        String dynamicChild = nameGenerator("Child_");
 
-        // 1. Create the Main Category
         catPage.navigateToMainCategory();
         catPage.openAddModal();
         catPage.fillForm(dynamicParent, "Active");
         catPage.clickCreate();
 
-        // 2. CREATE THE DEPENDENCY (Link Child to Parent)
         SubCategoryPage subPage = new SubCategoryPage(driver);
         subPage.hardResetAndNavigate();
-        String mainWindow = driver.getWindowHandle(); // Save current window
+        String mainWindow = driver.getWindowHandle();
         subPage.clickAddSubCategory();
 
-        // Switch to the popup window
         for (String handle : driver.getWindowHandles()) {
             if (!handle.equals(mainWindow)) {
                 driver.switchTo().window(handle);
@@ -182,63 +166,55 @@ public class CategoryTest extends BaseTest {
             }
         }
 
-        // Fill the form using the ID from your HTML
         subPage.fillAndSaveAddForm(dynamicChild, dynamicParent, "Active");
 
-        // Handle the success alert
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         wait.until(ExpectedConditions.alertIsPresent()).accept();
-
-        // Switch back to the main page
         driver.switchTo().window(mainWindow);
 
-        // 3. Go back to Main Category and try to delete the Parent
         catPage.navigateToMainCategory();
         catPage.searchFor(dynamicParent);
         catPage.deleteCategoryByIndex(1);
 
-        // 4. Verification: The Parent should NOT be deleted
         catPage.clickClear();
         catPage.searchFor(dynamicParent);
         String result = catPage.getCategoryNameByIndex(1);
 
-        Assert.assertEquals(result, dynamicParent,
-                "DEFECT: System allowed deletion of '" + dynamicParent + "' even though it had a subcategory link!");
-
+        Assert.assertEquals(result, dynamicParent, "DEFECT: System allowed deletion of '" + dynamicParent + "' even though it had a subcategory link!");
         Reporter.log("Dynamic Dependency Check Verified");
+
+        subPage.hardResetAndNavigate();
+        try {
+            driver.navigate().refresh();
+            WebElement delBtn = driver.findElement(By.xpath("//tr[td[contains(., '" + dynamicChild + "')]]//a[contains(@id, 'lnkDelete')]"));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", delBtn);
+            wait.until(ExpectedConditions.alertIsPresent()).accept();
+            try { wait.until(ExpectedConditions.alertIsPresent()).accept(); } catch(Exception e) {}
+        } catch (Exception e) {}
     }
+
     @Test(priority = 10)
     public void US2_MC_04_Task1_verifyImportButtonPresence() {
         catPage.navigateToMainCategory();
         WebElement importBtn = catPage.getImportButton();
 
         boolean isCorrect = importBtn.isDisplayed() && "Import".equalsIgnoreCase(importBtn.getAttribute("value"));
-
-        if (isCorrect) {
-            Reporter.log("PASS: Import button is visible with correct label.");
-        }
-
+        if (isCorrect) Reporter.log("PASS: Import button is visible with correct label.");
         Assert.assertTrue(isCorrect, "Import button is either missing or has the wrong label!");
     }
 
     @Test(priority = 11, dependsOnMethods = "US2_MC_04_Task1_verifyImportButtonPresence")
     public void UC2_MC_04_Task2_verifyImportButtonFunctionality() {
-        // 3. Action
         catPage.clickImport();
         Reporter.log("Action: Clicked the Import button.");
-
-        // 4. Functional Assertion
         boolean hasResponded = catPage.isImportResponseVisible();
 
-        if (hasResponded) {
-            Reporter.log("PASS: Functional response detected (Modal/Message appeared).");
-        }
-        else {
-            Reporter.log("FAIL: No UI response detected after clicking Import.");
-        }
+        if (hasResponded) Reporter.log("PASS: Functional response detected.");
+        else Reporter.log("FAIL: No UI response detected after clicking Import.");
 
         Assert.assertTrue(hasResponded, "Import button clicked but no Modal or Message appeared.");
     }
+
     @AfterClass(alwaysRun = true)
     public void cleanup() {
         catPage.navigateToMainCategory();

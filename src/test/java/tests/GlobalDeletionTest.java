@@ -21,25 +21,19 @@ public class GlobalDeletionTest extends BaseTest {
     private CategoryPage catPage;
     private SubCategoryPage subPage;
     private WebDriverWait wait;
-    private String targetCategory;
+
+    // Clean initialization using your new method
+    private String targetCategory = nameGenerator("Del_");
 
     @BeforeClass
     public void setupPages() {
         catPage = new CategoryPage(driver);
         subPage = new SubCategoryPage(driver);
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-
-        // Use last 5 digits of currentTimeMillis for a short, non-spammy name
-        String timeStr = String.valueOf(System.currentTimeMillis());
-        targetCategory = "Del_" + timeStr.substring(timeStr.length() - 5);
     }
 
-    // =========================================================
-    // US2-DEF-01 Task 1: Automate deletion of a Main Category
-    // =========================================================
     @Test(priority = 1)
     public void US2_DEF_01_Task1_DeleteMainCategory() {
-        // Setup Data
         catPage.navigateToMainCategory();
         catPage.openAddModal();
         catPage.fillForm(targetCategory, "Active");
@@ -48,27 +42,20 @@ public class GlobalDeletionTest extends BaseTest {
         catPage.searchFor(targetCategory);
         Assert.assertEquals(catPage.getCategoryNameByIndex(1), targetCategory, "Setup Issue: Category was not created.");
 
-        // Grab reference to the old table before clicking delete
         WebElement oldTable = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("ContentPlaceHolder_Admin_gvCategories")));
         WebElement deleteBtn = oldTable.findElement(By.xpath(".//tr[2]//a[contains(@id, 'lnkDelete')]"));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", deleteBtn);
 
-        // Accept "Are you sure?" alert
         wait.until(ExpectedConditions.alertIsPresent()).accept();
 
-        // Accept "Deleted Successfully" alert
         try {
             WebDriverWait shortWait = new WebDriverWait(driver, Duration.ofSeconds(3));
             Alert successAlert = shortWait.until(ExpectedConditions.alertIsPresent());
             successAlert.accept();
-        } catch (Exception e) {
-            // Ignore if there is no second alert
-        }
+        } catch (Exception e) { }
 
-        // Wait for the table to refresh dynamically (NO Thread.sleep)
         wait.until(ExpectedConditions.stalenessOf(oldTable));
 
-        // Verification
         catPage.clickClear();
         catPage.searchFor(targetCategory);
         Assert.assertNull(catPage.getCategoryNameByIndex(1), "Task 1 Failed: Category is still present in the Main Category table!");
@@ -76,20 +63,14 @@ public class GlobalDeletionTest extends BaseTest {
         Reporter.log("Task 1: Main Category deleted successfully and verified absent from main table.");
     }
 
-    // =========================================================
-    // US2-DEF-01 Task 2 & 3: Implement global verification
-    // =========================================================
     @Test(priority = 2, dependsOnMethods = "US2_DEF_01_Task1_DeleteMainCategory")
     public void US2_DEF_01_Task2_and_3_VerifyGlobalRemoval() {
         subPage.hardResetAndNavigate();
 
-        // Task 2: SubCategory Grid Verification
-        // Use the custom fast-check method to avoid 10-second implicit wait delays
         boolean foundInGrid = isCategoryPresentInSubGridFast(targetCategory);
         Assert.assertFalse(foundInGrid, "Task 2 Failed: The deleted Main Category is still lingering inside the SubCategory grid!");
         Reporter.log("Task 2: Verified complete absence in SubCategory data grid (Fast execution).");
 
-        // Task 3: SubCategory Dropdown Verification
         String mainWindow = driver.getWindowHandle();
         subPage.clickAddSubCategory();
 
@@ -112,9 +93,6 @@ public class GlobalDeletionTest extends BaseTest {
         Reporter.log("Task 3: Verified complete absence in SubCategory dropdown options.");
     }
 
-    // =========================================================
-    // Cleanup: Remove ALL junk data from past failed test runs
-    // =========================================================
     @AfterClass(alwaysRun = true)
     public void cleanupFailedData() {
         try {
@@ -122,7 +100,6 @@ public class GlobalDeletionTest extends BaseTest {
             catPage.clickClear();
             catPage.searchFor("Del_");
 
-            // Loop aggressively until absolutely no matching records remain
             while (true) {
                 String name = catPage.getCategoryNameByIndex(1);
 
@@ -137,13 +114,12 @@ public class GlobalDeletionTest extends BaseTest {
                         new WebDriverWait(driver, Duration.ofSeconds(3)).until(ExpectedConditions.alertIsPresent()).accept();
                     } catch (Exception e) {}
 
-                    // Wait for the DOM to update instead of using Thread.sleep()
                     wait.until(ExpectedConditions.stalenessOf(oldTable));
 
                     catPage.clickClear();
                     catPage.searchFor("Del_");
                 } else {
-                    break; // Exit loop when table is completely clean
+                    break;
                 }
             }
             Reporter.log("Cleanup complete: All 'Del_' spam names deleted.");
@@ -152,15 +128,11 @@ public class GlobalDeletionTest extends BaseTest {
         }
     }
 
-    // =========================================================
-    // HELPER: Ultra-fast pagination check that bypasses implicit wait
-    // =========================================================
+    // HELPER: Ultra-fast pagination check
     private boolean isCategoryPresentInSubGridFast(String targetName) {
-        // 1. Temporarily turn OFF implicit wait so missing elements don't cause 10-second delays
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(0));
 
         try {
-            // Reset to Page 1
             List<WebElement> p1 = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//a[text()='1']"));
             if (!p1.isEmpty()) {
                 WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
@@ -169,13 +141,11 @@ public class GlobalDeletionTest extends BaseTest {
             }
 
             while (true) {
-                // Check if the text exists anywhere in the current page's table rows
                 List<WebElement> matches = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//td[contains(text(), '" + targetName + "') or descendant::*[contains(text(), '" + targetName + "')]]"));
                 if (!matches.isEmpty()) {
                     return true;
                 }
 
-                // Pagination Logic
                 String current = "1";
                 try {
                     current = driver.findElement(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr[descendant::table]//span")).getText();
@@ -195,14 +165,12 @@ public class GlobalDeletionTest extends BaseTest {
                 if (next != null) {
                     WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
                     next.click();
-                    // Wait strictly for DOM update, no Thread.sleep
                     wait.until(ExpectedConditions.stalenessOf(oldTable));
                 } else {
                     break;
                 }
             }
         } finally {
-            // 2. ALWAYS turn implicit wait back ON when done
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         }
         return false;
