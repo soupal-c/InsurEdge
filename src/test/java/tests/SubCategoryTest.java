@@ -20,6 +20,7 @@ public class SubCategoryTest extends BaseTest {
 
     public String lastCreatedMainCategory = "AutoSync_" + System.currentTimeMillis();
     private String mainWindow;
+    private String deletedRecordName;
 
     String targetSubCat = "Retirement_" + System.currentTimeMillis();
     String updatedSubCat = "Retirement_Updated_" + System.currentTimeMillis();
@@ -158,8 +159,8 @@ public class SubCategoryTest extends BaseTest {
     public void US2_SC_03_Task1_VerifyEditVerification() {
         subPage.hardResetAndNavigate();
 
-        // 1. Locate the dynamic data created in Task 0
-        boolean found = subPage.searchAndLocateAcrossPages(targetSubCat);
+        // 1. Locate the dynamic data created in Task 0 using the robust local method
+        boolean found = isSubcategoryPresentAcrossPages(targetSubCat);
         Assert.assertTrue(found, "Data created in Task 0 not found in table!");
 
         // 2. Click Edit
@@ -185,8 +186,8 @@ public class SubCategoryTest extends BaseTest {
         } catch (Exception ignored) {}
 
         // 3. Task 2 requirement: Assert data reflection WITHOUT page reload
-        // We search for the NEW name immediately
-        boolean isUpdated = subPage.searchAndLocateAcrossPages(updatedSubCat);
+        // Use the robust local method to handle pagination to find the updated element safely
+        boolean isUpdated = isSubcategoryPresentAcrossPages(updatedSubCat);
         Assert.assertTrue(isUpdated, "TASK 2 FAILED: Updated name not reflected in table immediately!");
 
         Reporter.log("Task 2: Immediate data reflection confirmed.");
@@ -197,6 +198,46 @@ public class SubCategoryTest extends BaseTest {
     public void cleanupEnvironment() {
         try { catPage.cleanUpAllTestArtifacts(); } catch (Exception ignored) {}
     }
+
+
+    // =========================================================
+    // SC-04: Delete & Persistence Verification
+    // =========================================================
+
+    @Test(priority = 9)
+    public void US2_SC_04_Task1_DeleteAndConfirmPopups() {
+        subPage.hardResetAndNavigate();
+
+        // 1. Setup: Create a dummy subcategory so we don't delete essential test data
+        createSubcategoryViaPopup(lastCreatedMainCategory, "ToDelete_");
+
+        // 2. Capture the name of the first row dynamically
+        deletedRecordName = subPage.getFirstRowSubCategoryName();
+        Reporter.log("Dynamically selected for deletion: " + deletedRecordName);
+
+        // 3. Perform Delete Action
+        subPage.clickDeleteOnFirstRow();
+
+        // 4. Handle alerts and Validate
+        String alertText = subPage.handleDualDeleteAlerts();
+        Reporter.log("Alert message captured: " + alertText);
+        Assert.assertTrue(alertText.toLowerCase().contains("successfully"), "Success message mismatch!");
+    }
+
+    @Test(priority = 10, dependsOnMethods = "US2_SC_04_Task1_DeleteAndConfirmPopups")
+    public void US2_SC_04_Task2_VerifyPersistenceAfterRefresh() {
+        // 1. Refresh the page via the UI button
+        subPage.clickRefreshButton();
+        Reporter.log("Refreshing list to check persistence...");
+
+        // 2. Validate using the robust pagination helper
+        boolean isPresent = isSubcategoryPresentAcrossPages(deletedRecordName);
+
+        // 3. Assert it is permanently gone
+        Assert.assertFalse(isPresent, "The record '" + deletedRecordName + "' was not permanently removed!");
+        Reporter.log("Test Passed: '" + deletedRecordName + "' is permanently gone.");
+    }
+
 
     // ===================== HELPERS =====================
 
@@ -230,10 +271,16 @@ public class SubCategoryTest extends BaseTest {
      * Finds a name by traversing pages. Returns true immediately if found.
      */
     private boolean isSubcategoryPresentAcrossPages(String targetName) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
         // Reset to Page 1
         try {
             List<WebElement> p1 = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//a[text()='1']"));
-            if (!p1.isEmpty()) { p1.get(0).click(); Thread.sleep(1000); }
+            if (!p1.isEmpty()) {
+                WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
+                p1.get(0).click();
+                wait.until(ExpectedConditions.stalenessOf(oldTable));
+            }
         } catch (Exception ignored) {}
 
         List<String> visited = new ArrayList<>();
@@ -265,8 +312,11 @@ public class SubCategoryTest extends BaseTest {
             }
 
             if (next != null) {
+                WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
                 next.click();
-                try { Thread.sleep(1500); } catch (Exception ignored) {}
+                try {
+                    wait.until(ExpectedConditions.stalenessOf(oldTable));
+                } catch (Exception ignored) {}
             } else { break; }
         }
         return false;
@@ -274,9 +324,15 @@ public class SubCategoryTest extends BaseTest {
 
     private int countNameOccurrences(String targetName) {
         int count = 0;
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
         try {
             List<WebElement> p1 = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//a[text()='1']"));
-            if (!p1.isEmpty()) { p1.get(0).click(); Thread.sleep(1000); }
+            if (!p1.isEmpty()) {
+                WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
+                p1.get(0).click();
+                wait.until(ExpectedConditions.stalenessOf(oldTable));
+            }
         } catch (Exception ignored) {}
 
         List<String> visited = new ArrayList<>();
@@ -305,8 +361,11 @@ public class SubCategoryTest extends BaseTest {
                 }
             }
             if (next != null) {
+                WebElement oldTable = driver.findElement(By.id("ContentPlaceHolder_Admin_gvSubCategories"));
                 next.click();
-                try { Thread.sleep(1500); } catch (Exception ignored) {}
+                try {
+                    wait.until(ExpectedConditions.stalenessOf(oldTable));
+                } catch (Exception ignored) {}
             } else { break; }
         }
         return count;

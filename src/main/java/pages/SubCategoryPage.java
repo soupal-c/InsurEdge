@@ -20,6 +20,9 @@ public class SubCategoryPage {
     private By btnRefresh = By.xpath("//a[contains(@onclick, 'location.reload')]");
     private By table = By.id("ContentPlaceHolder_Admin_gvSubCategories");
     private By tableHeaders = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//th");
+    // Delete Actions
+    private By firstRowSubCategoryName = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr[2]//span[contains(@id, 'lblSubCategoryName')]");
+    private By firstRowDeleteBtn = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr[2]//a[contains(@id, 'lnkDelete')]");
 
     // Add Page Elements
     private By txtAddName = By.id("ContentPlaceHolder_Admin_txtSubCategory");
@@ -216,10 +219,32 @@ public class SubCategoryPage {
         driver.findElement(By.xpath("//a[contains(@id,'lnkUpdate')]")).click();
     }
 
+    // --- DELETE ACTIONS ---
+    public String getFirstRowSubCategoryName() {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(firstRowSubCategoryName)).getText().trim();
+    }
 
+    public void clickDeleteOnFirstRow() {
+        WebElement deleteBtn = wait.until(ExpectedConditions.elementToBeClickable(firstRowDeleteBtn));
+        // Using JS click to prevent "element intercepted" issues on action icons
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", deleteBtn);
+    }
 
+    public String handleDualDeleteAlerts() {
+        // 1. Accept the Confirm Delete Alert
+        wait.until(ExpectedConditions.alertIsPresent()).accept();
 
+        // 2. Wait for and capture the Success Alert
+        Alert successAlert = wait.until(ExpectedConditions.alertIsPresent());
+        String alertText = successAlert.getText();
+        successAlert.accept();
 
+        return alertText;
+    }
 
+    public void clickRefreshButton() {
+        WebElement refresh = wait.until(ExpectedConditions.elementToBeClickable(btnRefresh));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", refresh);
+    }
 }
 
