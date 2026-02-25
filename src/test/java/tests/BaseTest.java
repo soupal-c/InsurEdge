@@ -2,6 +2,7 @@ package tests;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
@@ -14,9 +15,14 @@ public class BaseTest {
 
     @BeforeSuite
     public void setupSuite() {
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
         driver.get("https://qeaskillhub.cognizant.com/LoginPage");
         LoginPage login = new LoginPage(driver);
@@ -25,8 +31,8 @@ public class BaseTest {
 
     @AfterMethod
     public void cleanupAfterTest(ITestResult result) {
-        if (result.getStatus() == ITestResult.FAILURE) {
-            System.out.println("Robin: Hard reset for: " + result.getName());
+        if (result.getStatus() == ITestResult.FAILURE && driver != null) {
+            System.out.println("Test Failed! Hard reset for: " + result.getName());
             driver.get("https://qeaskillhub.cognizant.com/AdminDashboard");
         }
     }
@@ -40,7 +46,6 @@ public class BaseTest {
 
     public String nameGenerator(String prefix) {
         String timeStr = String.valueOf(System.currentTimeMillis());
-        // Appends the 5-digit slice to whatever prefix you pass in
         return prefix + timeStr.substring(timeStr.length() - 5);
     }
 }

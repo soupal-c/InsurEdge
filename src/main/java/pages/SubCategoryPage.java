@@ -1,92 +1,52 @@
 package pages;
 
 import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SubCategoryPage {
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // --- LOCATORS ---
-    // Navigation
     private By categoryMenu = By.xpath("//a[contains(@class,'nav-link')]/span[text()='Category']");
     private By subCategoryLink = By.xpath("//a[contains(@href,'AdminCreateSubCategory.aspx')]");
 
-    // Main Page Elements
     private By btnAddSubCategory = By.linkText("Add Subcategory");
     private By btnRefresh = By.xpath("//a[contains(@onclick, 'location.reload')]");
     private By table = By.id("ContentPlaceHolder_Admin_gvSubCategories");
-    private By tableHeaders = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//th");
-    // Delete Actions
-    private By firstRowSubCategoryName = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr[2]//span[contains(@id, 'lblSubCategoryName')]");
-    private By firstRowDeleteBtn = By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr[2]//a[contains(@id, 'lnkDelete')]");
 
-    // Add Page Elements
-    private By txtAddName = By.id("ContentPlaceHolder_Admin_txtSubCategory");
     private By ddlAddMainCategory = By.id("ContentPlaceHolder_Admin_ddlMainCategory");
+    private By txtAddName = By.id("ContentPlaceHolder_Admin_txtSubCategory");
     private By ddlAddStatus = By.id("ContentPlaceHolder_Admin_ddlStatus");
     private By btnSaveAdd = By.id("ContentPlaceHolder_Admin_btnSaveSubCategory");
 
-    // Edit Page Elements
-    private By txtEditName = By.xpath("//input[contains(@id,'txtSubCategoryName')]");
+    private By txtEditName = By.xpath("//input[contains(@id,'txtSubCategory')]");
     private By ddlEditStatus = By.xpath("//select[contains(@id,'ddlStatus')]");
-    private By btnUpdate = By.xpath("//a[text()='Update' or contains(@id,'lnkUpdate')]");
-
-    // US2-SC-02 - Task 2 - Add SubCategory Elements
-    private By txtSubCategoryName = By.id("ContentPlaceHolder_Admin_txtSubCategory");
-    private By ddlSubStatus = By.id("ContentPlaceHolder_Admin_ddlStatus");
-    private By btnSave = By.id("ContentPlaceHolder_Admin_btnSaveSubCategory");
-    private By btnCancel = By.id("ContentPlaceHolder_Admin_btnCancel");
+    private By btnUpdate = By.xpath("//a[contains(@id,'lnkUpdate')]");
 
     public SubCategoryPage(WebDriver driver) {
         this.driver = driver;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
-    // --- NAVIGATION ---
     public void hardResetAndNavigate() {
-        try {
-            ((JavascriptExecutor) driver).executeScript(
-                    "var modals = document.querySelectorAll('.modal, .modal-backdrop');" +
-                            "modals.forEach(m => m.remove());" +
-                            "document.body.classList.remove('modal-open');"
-            );
-            wait.until(ExpectedConditions.elementToBeClickable(categoryMenu)).click();
-            wait.until(ExpectedConditions.elementToBeClickable(subCategoryLink)).click();
-        } catch (Exception e) {
-            driver.navigate().refresh();
-            wait.until(ExpectedConditions.elementToBeClickable(categoryMenu)).click();
-            wait.until(ExpectedConditions.elementToBeClickable(subCategoryLink)).click();
-        }
-    }
+        // FIX: Catch any lingering delayed alerts before attempting to refresh the page
+        try { driver.switchTo().alert().accept(); } catch (Exception ignored) {}
 
-    public void clickAddSubCategory() {
-        wait.until(ExpectedConditions.elementToBeClickable(btnAddSubCategory)).click();
-    }
+        driver.navigate().refresh();
 
-    // Checks if the Refresh button (alternative to filter) is present
-    public boolean isRefreshButtonVisible() {
-        try {
-            return wait.until(ExpectedConditions.visibilityOfElementLocated(btnRefresh)).isDisplayed();
-        } catch (Exception e) { return false; }
-    }
+        // Wait for page to fully load
+        wait.until(d -> ((JavascriptExecutor) d).executeScript("return document.readyState").equals("complete"));
 
-    // Gets headers to verify columns like 'Status'
-    public List<String> getTableHeaders() {
-        wait.until(ExpectedConditions.visibilityOfElementLocated(table));
-        return driver.findElements(tableHeaders).stream()
-                .map(WebElement::getText)
-                .collect(Collectors.toList());
-    }
+        WebElement menu = wait.until(ExpectedConditions.presenceOfElementLocated(categoryMenu));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", menu);
 
-    // Used inside the Add Window
-    public List<String> getAddPageDropdownOptions() {
-        wait.until(d -> new Select(d.findElement(ddlAddMainCategory)).getOptions().size() > 0);
-        Select select = new Select(driver.findElement(ddlAddMainCategory));
-        return select.getOptions().stream().map(opt -> opt.getText().trim()).collect(Collectors.toList());
+        WebElement link = wait.until(ExpectedConditions.presenceOfElementLocated(subCategoryLink));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", link);
     }
 
     public boolean isPaginationVisible() {
@@ -94,157 +54,171 @@ public class SubCategoryPage {
                 || !driver.findElements(By.xpath("//table//span[text()='1']")).isEmpty();
     }
 
-    // --- ADD PAGE ACTIONS ---
-    public void fillAndSaveAddForm(String name, int mainCategoryIndex, String status) {
-        WebElement txtName = wait.until(ExpectedConditions.visibilityOfElementLocated(txtAddName));
-        txtName.clear();
-        txtName.sendKeys(name);
-        new Select(driver.findElement(ddlAddMainCategory)).selectByIndex(mainCategoryIndex);
+    public void clickAddSubCategory() {
+        WebElement addBtn = wait.until(ExpectedConditions.presenceOfElementLocated(btnAddSubCategory));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", addBtn);
+    }
+
+    public void createSubCategory(String parentName, String subName, String status) {
+        hardResetAndNavigate();
+        String main = driver.getWindowHandle();
+        clickAddSubCategory();
+
+        wait.until(d -> d.getWindowHandles().size() > 1);
+        for (String h : driver.getWindowHandles()) {
+            if (!h.equals(main)) driver.switchTo().window(h);
+        }
+
+        new Select(wait.until(ExpectedConditions.visibilityOfElementLocated(ddlAddMainCategory))).selectByVisibleText(parentName);
+        driver.findElement(txtAddName).sendKeys(subName);
         new Select(driver.findElement(ddlAddStatus)).selectByVisibleText(status);
-        driver.findElement(btnSaveAdd).click();
+
+        WebElement saveBtn = driver.findElement(btnSaveAdd);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", saveBtn);
+
+        try { wait.until(ExpectedConditions.alertIsPresent()).accept(); } catch (Exception e) {}
+
+        if (driver.getWindowHandles().size() > 1) driver.close();
+        driver.switchTo().window(main);
+        driver.navigate().refresh();
     }
 
-    // --- SEARCH & EDIT ACTIONS ---
-    public boolean searchAndLocateSubCategory(String subCategoryName) {
-        boolean found = false;
-        int pageIndex = 1;
+    public void clickEditButton(String targetName) {
+        WebElement editBtn = driver.findElement(By.xpath("//tr[td[contains(., '" + targetName + "')]]//a[contains(@id, 'lnkEdit')]"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", editBtn);
+    }
 
-        while (!found && pageIndex < 10) {
-            List<WebElement> elements = driver.findElements(By.xpath("//span[contains(normalize-space(),'" + subCategoryName + "')]"));
+    public void saveEdit(String newName, String status) {
+        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(txtEditName));
+        input.clear();
+        input.sendKeys(newName);
+        new Select(driver.findElement(ddlEditStatus)).selectByVisibleText(status);
 
-            if (!elements.isEmpty()) {
-                ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", elements.get(0));
-                return true;
-            }
+        WebElement updateBtnElement = driver.findElement(btnUpdate);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", updateBtnElement);
 
-            pageIndex++;
-            List<WebElement> nextPager = driver.findElements(By.xpath("//table//td/a[text()='" + pageIndex + "']"));
+        try { wait.until(ExpectedConditions.alertIsPresent()).accept(); } catch (Exception e) {}
+    }
 
-            if (!nextPager.isEmpty()) {
-                WebElement oldTable = driver.findElement(table);
-                nextPager.get(0).click();
-                try {
-                    wait.until(ExpectedConditions.stalenessOf(oldTable));
-                    wait.until(ExpectedConditions.visibilityOfElementLocated(table));
-                } catch (Exception e) {
-                    try { Thread.sleep(1000); } catch (InterruptedException ex) {}
-                }
-            } else {
-                break;
-            }
+    public String deleteSubCategoryByName(String targetName) {
+        WebElement oldTable = driver.findElement(table);
+
+        WebElement deleteBtn = wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//tr[td[contains(., '" + targetName + "')]]//a[contains(@id, 'lnkDelete')]")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", deleteBtn);
+
+        wait.until(ExpectedConditions.alertIsPresent()).accept();
+
+        Alert successAlert = wait.until(ExpectedConditions.alertIsPresent());
+        String alertText = successAlert.getText();
+        successAlert.accept();
+
+        try { wait.until(ExpectedConditions.stalenessOf(oldTable)); } catch (Exception e) {}
+
+        return alertText;
+    }
+
+    public List<String> getAddPageDropdownOptions() {
+        wait.until(d -> new Select(d.findElement(ddlAddMainCategory)).getOptions().size() > 0);
+        Select select = new Select(driver.findElement(ddlAddMainCategory));
+
+        List<String> textOptions = new ArrayList<>();
+        for (WebElement option : select.getOptions()) {
+            textOptions.add(option.getText().trim());
         }
-        return false;
+        return textOptions;
     }
 
-    public void clickEditForSubCategory(String subCategoryName) {
-        By editXpath = By.xpath("//span[contains(normalize-space(),'" + subCategoryName + "')]/ancestor::tr//a[contains(@id,'lnkEdit')]");
-        wait.until(ExpectedConditions.elementToBeClickable(editXpath)).click();
+    public String getEditNameValue() {
+        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(txtEditName));
+        return input.getAttribute("value");
     }
 
-    // --- EDIT PAGE ACTIONS ---
-    public String getEditNameFieldValue() {
-        WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(txtEditName));
-        return nameInput.getAttribute("value");
+    public String handleDualDeleteAlerts() {
+        WebElement oldTable = driver.findElement(table);
+
+        wait.until(ExpectedConditions.alertIsPresent()).accept();
+
+        Alert successAlert = wait.until(ExpectedConditions.alertIsPresent());
+        String alertText = successAlert.getText();
+        successAlert.accept();
+
+        try { wait.until(ExpectedConditions.stalenessOf(oldTable)); } catch (Exception e) {}
+
+        return alertText;
     }
 
-
-    public void performUpdate(String newName, String status) {
-        WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(txtEditName));
-        nameInput.clear();
-        nameInput.sendKeys(newName);
-
-        if (status != null) {
-            Select select = new Select(driver.findElement(ddlEditStatus));
-            select.selectByVisibleText(status);
-        }
-
-        driver.findElement(btnUpdate).click();
-
-        try {
-            wait.until(ExpectedConditions.alertIsPresent()).accept();
-        } catch (TimeoutException e) { /* Ignore */ }
+    public void clickRefreshButton() {
+        WebElement refreshBtn = driver.findElement(btnRefresh);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", refreshBtn);
     }
 
-    public boolean isSubCategoryVisibleInTable(String name) {
-        try {
-            WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath("//span[contains(normalize-space(),'" + name.trim() + "')]")
-            ));
-            return el.isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
-    }
+    public boolean searchAcrossPages(String targetName) {
+        wait.until(ExpectedConditions.visibilityOfElementLocated(table));
 
-    public void fillAndSaveAddForm(String subName, String parentName, String status) {
-        // Select the parent we just created from the dropdown
-        WebElement ddl = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("ContentPlaceHolder_Admin_ddlMainCategory")));
-        new Select(ddl).selectByVisibleText(parentName);
-
-        driver.findElement(By.id("ContentPlaceHolder_Admin_txtSubCategory")).sendKeys(subName);
-        new Select(driver.findElement(By.id("ContentPlaceHolder_Admin_ddlStatus"))).selectByVisibleText(status);
-        driver.findElement(By.id("ContentPlaceHolder_Admin_btnSaveSubCategory")).click();
-    }
-
-    public boolean searchAndLocateAcrossPages(String subName) {
         while (true) {
-            List<WebElement> elements = driver.findElements(By.xpath("//span[normalize-space()='" + subName + "']"));
-            if (!elements.isEmpty()) return true;
+            List<WebElement> rows = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr"));
+            for (WebElement row : rows) {
+                if (row.getText().contains(targetName)) return true;
+            }
 
-            // Logic: Find the cell with the current page (span) and click the next link (a)
-            String nextLinkXpath = "//table[contains(@id,'gvSubCategories')]//tr[last()]//td[span]/following-sibling::td[1]/a";
-            List<WebElement> nextPager = driver.findElements(By.xpath(nextLinkXpath));
-
-            if (!nextPager.isEmpty()) {
-                nextPager.get(0).click();
-                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            List<WebElement> nextPager = driver.findElements(By.xpath("//table[contains(@id,'gvSubCategories')]//tr[last()]//td[span]/following-sibling::td[1]/a"));
+            if (nextPager.size() > 0) {
+                WebElement oldTable = driver.findElement(table);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", nextPager.get(0));
+                wait.until(ExpectedConditions.stalenessOf(oldTable));
             } else {
                 return false;
             }
         }
     }
 
+    public int countOccurrencesAcrossPages(String targetName) {
+        wait.until(ExpectedConditions.visibilityOfElementLocated(table));
+        int count = 0;
 
+        while (true) {
+            List<WebElement> rows = driver.findElements(By.xpath("//table[@id='ContentPlaceHolder_Admin_gvSubCategories']//tr"));
+            for (WebElement row : rows) {
+                if (row.getText().contains(targetName)) count++;
+            }
 
-    public String getEditNameValue() {
-        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[contains(@id,'txtSubCategory')]")));
-        return input.getAttribute("value");
+            List<WebElement> nextPager = driver.findElements(By.xpath("//table[contains(@id,'gvSubCategories')]//tr[last()]//td[span]/following-sibling::td[1]/a"));
+            if (nextPager.size() > 0) {
+                WebElement oldTable = driver.findElement(table);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", nextPager.get(0));
+                wait.until(ExpectedConditions.stalenessOf(oldTable));
+            } else {
+                break;
+            }
+        }
+        return count;
     }
 
-    public void updateSubCategoryDetails(String newName, String status) {
-        WebElement input = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[contains(@id,'txtSubCategory')]")));
-        input.clear();
-        input.sendKeys(newName);
-        new Select(driver.findElement(By.xpath("//select[contains(@id,'ddlStatus')]"))).selectByVisibleText(status);
-        driver.findElement(By.xpath("//a[contains(@id,'lnkUpdate')]")).click();
-    }
+    public void cleanUpSubCategoryArtifacts() {
+        String[] artifacts = {"AutoSub-", "AutoReflect-", "Retire_", "RetireUp_", "ToDelete_", "Child_"};
 
-    // --- DELETE ACTIONS ---
-    public String getFirstRowSubCategoryName() {
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(firstRowSubCategoryName)).getText().trim();
-    }
+        for (String artifact : artifacts) {
+            hardResetAndNavigate();
+            while (searchAcrossPages(artifact)) {
+                WebElement oldTable = driver.findElement(table);
+                WebElement deleteBtn = driver.findElement(By.xpath("//tr[td[contains(., '" + artifact + "')]]//a[contains(@id, 'lnkDelete')]"));
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", deleteBtn);
 
-    public void clickDeleteOnFirstRow() {
-        WebElement deleteBtn = wait.until(ExpectedConditions.elementToBeClickable(firstRowDeleteBtn));
-        // Using JS click to prevent "element intercepted" issues on action icons
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", deleteBtn);
-    }
+                // Alert 1
+                wait.until(ExpectedConditions.alertIsPresent()).accept();
 
-    public String handleDualDeleteAlerts() {
-        // 1. Accept the Confirm Delete Alert
-        wait.until(ExpectedConditions.alertIsPresent()).accept();
+                // Alert 2 (Increased wait slightly to guarantee we catch the delayed success alert)
+                try {
+                    WebDriverWait alertWait = new WebDriverWait(driver, Duration.ofSeconds(5));
+                    alertWait.until(ExpectedConditions.alertIsPresent()).accept();
+                } catch(Exception e) {}
 
-        // 2. Wait for and capture the Success Alert
-        Alert successAlert = wait.until(ExpectedConditions.alertIsPresent());
-        String alertText = successAlert.getText();
-        successAlert.accept();
+                // Wait for Auto-Refresh safely
+                try { wait.until(ExpectedConditions.stalenessOf(oldTable)); } catch(Exception e) {}
 
-        return alertText;
-    }
-
-    public void clickRefreshButton() {
-        WebElement refresh = wait.until(ExpectedConditions.elementToBeClickable(btnRefresh));
-        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", refresh);
+                hardResetAndNavigate();
+            }
+        }
     }
 }
-

@@ -5,7 +5,7 @@
 
     <test name="End-to-End Module Tests" preserve-order="true">
         <classes>
-            <class name="tests.CategoryTest"/>
+            <class name="tests.MainCategoryTest"/>
             <class name="tests.SubCategoryTest"/>
             <class name="tests.GlobalDeletionTest"/>
         </classes>
