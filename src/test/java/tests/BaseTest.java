@@ -16,6 +16,7 @@ public class BaseTest {
     @BeforeSuite
     public void setupSuite() {
         ChromeOptions options = new ChromeOptions();
+
         options.addArguments("--remote-allow-origins=*");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
